@@ -23,9 +23,10 @@ def verify(pk, msg, signed):
     suppose publicExponent is fixed at 0x10001.
     return boolean
     '''
-    signed = bytes([int('0x' + signed, 16)])
+    bytes_ = [signed[i:i+2] for i in range(0, len(signed), 2)]
+    signed = bytes([int('0x' + b, 16) for b in bytes_])
     sigscheme = pkcs1_15.new(pk)
-    h = SHA512.new(msg)
+    h = SHA512.new(msg.encode('utf8'))
     try:
         sigscheme.verify(h, signed)
         return True
@@ -76,9 +77,9 @@ def get_hash(msg):
     '''
     return hash hexdigest for string msg with 0x. ex) 0x1a2b...
     '''
-    h = SHA512.new(msg)
+    h = SHA512.new(msg.encode('utf8'))
     hexdigest = h.hexdigest()
-    return hexdigest
+    return '0x' + hexdigest
 
 
 def get_pk(sk):

@@ -25,9 +25,9 @@ class DBManager:
         """
         session = self.get_session()
         for block in session.query(Block).all():
-            print(block)
-
-        raise NotImplementedError
+            header = block.get_header()
+            if header['hash'] == block_hash:
+                return block
 
         return None
 
@@ -35,35 +35,72 @@ class DBManager:
         """
         Step 2
         """
-        session = self.get_session()
-        for block in session.query(Block).all():
-            print(block)
+        curblk = self.search_block(block_hash)
+        if curblk is None:
+            return None
 
-        raise NotImplementedError
+        height = 0
+        while curblk.parent != GENESIS_HASH:
+            # print(curblk)
+            # print(curblk.parent)
+            curblk = self.search_block(curblk.parent)
+            height += 1
 
-        return None
+        return height
 
     def get_current(self) -> Block:
         """
         Step 3
         """
+        maxhgt = -1
+        maxblk = None
+
         session = self.get_session()
         for block in session.query(Block).all():
-            print(block)
+            header = block.get_header()
+            hgt = self.get_height(header['hash'])
+            if hgt > maxhgt:
+                maxhgt = hgt
+                maxblk = block
 
-        raise NotImplementedError
-        return
+        return maxblk
+
+    def _get_chain(self, block_hash: str) -> list:
+        curhash = block_hash
+        chain = []
+        while curhash != GENESIS_HASH:
+            curblk = self.search_block(curhash)
+            chain.append(curblk)
+            curhash = curblk.parent
+
+        chain = list(reversed(chain))
+        return chain
+
+    def _get_length(self, block_hash: str) -> Optional[int]:
+        """
+        block_hash should be hash of existing block
+        """
+        chain = self._get_chain(block_hash)
+        length = sum([blk.difficulty for blk in chain])
+
+        return (length, chain)
 
     def get_longest(self) -> List[Block]:
         """
         Step 4
         """
         session = self.get_session()
-        for block in session.query(Block).all():
-            print(block)
 
-        raise NotImplementedError
-        return
+        maxlength = 0
+        maxchain = []
+        for block in session.query(Block).all():
+            header = block.get_header()
+            (length, chain) = self._get_length(header['hash'])
+            if length > maxlength:
+                maxlength = length
+                maxchain = chain
+
+        return chain
 
     def search_transaction(self, tx_hash: str) -> Optional[Transaction]:
         """
@@ -71,9 +108,9 @@ class DBManager:
         """
         session = self.get_session()
         for tx in session.query(Transaction).all():
-            print(tx)
-
-        raise NotImplementedError
+            header = tx.get_header()
+            if header['hash'] == tx_hash:
+                return tx
 
         return None
 
@@ -81,11 +118,21 @@ class DBManager:
         """
         Step 6
         """
-        block = self.search_block(block_hash)
-        print(block)
+        ## block = self.search_block(block_hash)
+        chain = self._get_chain(block_hash)
+        balances = {}
 
-        raise NotImplementedError
-        return None
+        for blk in chain:
+            p = blk.miner
+            balances[p] = balances.get(p, 0) + REWARD
+            for tx in blk.txs:
+                amount = tx.amount
+                p = tx.sender
+                balances[p] = balances.get(p, 0) - amount
+                p = tx.receiver
+                balances[p] = balances.get(p, 0) + amount
+
+        return balances
 
     def insert_block(self, block: Block) -> bool:
         session = self.get_session()
