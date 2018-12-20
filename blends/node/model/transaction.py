@@ -10,7 +10,7 @@ class Transaction(Base):
     """ Header """
     hash = Column(String(255), primary_key=True)
     version = Column(String(16), nullable=False)
-    sign = Column(String(16), nullable=False)
+    sign = Column(String(1024), nullable=False)
     """ Payload """
     sender = Column(String(1024), primary_key=False)
     receiver = Column(String(1024), primary_key=False)

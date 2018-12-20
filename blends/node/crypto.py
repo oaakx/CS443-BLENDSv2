@@ -28,6 +28,7 @@ def verify(pk, msg, signed):
     sigscheme = pkcs1_15.new(pk)
     h = SHA512.new(msg.encode('utf8'))
     try:
+        #signed = int('0x' + signed).to_bytes()
         sigscheme.verify(h, signed)
         return True
     except:
